@@ -70,9 +70,9 @@ PRODUTOS_DIEESE = [
         "nome": "Arroz",
         "quantidade_kg": 3.0,
         "unidade": "kg",
-        "termo_busca": "Arroz tipo 1",
+        "termo_busca": "Arroz 5kg",
         "ncm_prefixos": ["1006"],  # Arroz
-        "peso_padrao_kg": 1.0,
+        "peso_padrao_kg": 5.0, # Saco de 5kg é o mais comum, ajustado peso padrão
     },
     {
         "nome": "Farinha",
@@ -94,7 +94,7 @@ PRODUTOS_DIEESE = [
         "nome": "Tomate",
         "quantidade_kg": 9.0,
         "unidade": "kg",
-        "termo_busca": "Tomate",
+        "termo_busca": "Tomate kg",
         "ncm_prefixos": ["0702"],  # Tomates
         "peso_padrao_kg": 1.0,
     },
@@ -118,7 +118,7 @@ PRODUTOS_DIEESE = [
         "nome": "Banana",
         "quantidade_kg": 10.8,  # 90 unidades ≈ 10.8kg (120g/un)
         "unidade": "kg",
-        "termo_busca": "Banana",
+        "termo_busca": "Banana Caturra",
         "ncm_prefixos": ["0803"],  # Bananas
         "peso_padrao_kg": 1.0,
     },
@@ -193,6 +193,31 @@ BLACKLIST_DESCRICAO = [
     "PRINGLES",
     "SNACK",
     "PRONTO",
+    "MOLHO",
+    "EXTRATO",
+    "KETCHUP",
+    "CATCHUP",
+    "MASSA",
+    "MACARRAO",
+    "POLPA",
+    "PURÊ",
+    "PURE",
+    "DOCE",
+    "BALA",
+    "BOMBOM",
+    "CEREAL",
+    "IOGURTE",
+    "BEBIDA",
+    "ACAI",
+    "AÇAÍ",
+    "AÇAI",
+    "SORVETE",
+    "GELATINA",
+    "PASTILHA",
+    "BISCOITO",
+    "MISTURA",
+    "BOLO",
+    "CALDO",
 ]
 
 # Palavras no NOME do estabelecimento que indicam preços atípicos
