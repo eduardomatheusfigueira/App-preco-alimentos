@@ -21,7 +21,7 @@ from database import (
     consultar_datas_disponiveis,
     consultar_detalhes_produtos,
 )
-from config import CIDADES_PADRAO, PRODUTOS_DIEESE
+from config import PRODUTOS_DIEESE
 from collector import coletar_cidade
 from api_client import MenorPrecoAPI
 
@@ -225,16 +225,15 @@ def render_sidebar():
     with st.sidebar:
         st.markdown("## 🔧 Configurações")
 
-        # Cidades disponíveis no banco
-        cidades_banco = consultar_cidades_disponiveis()
-        cidades_opcoes = cidades_banco if cidades_banco else CIDADES_PADRAO
-
-        cidade = st.selectbox(
+        # Cidade — campo de texto livre (padrão: Foz do Iguaçu)
+        cidade = st.text_input(
             "🏙️ Cidade",
-            options=cidades_opcoes,
-            index=0,
-            help="Selecione a cidade para visualizar os preços",
-        )
+            value="Foz do Iguaçu",
+            help="Digite o nome do município para pesquisar os preços",
+        ).strip()
+
+        if not cidade:
+            cidade = "Foz do Iguaçu"
 
         st.markdown("---")
 
