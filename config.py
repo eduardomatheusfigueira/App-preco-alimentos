@@ -12,7 +12,7 @@ API_CATEGORIAS = f"{API_BASE_URL}/categorias"
 API_GEOCODING = "https://menorpreco.notaparana.pr.gov.br/mapa/search"
 
 # Raio de busca padrão (km)
-RAIO_BUSCA_KM = 20
+RAIO_BUSCA_KM = 30
 
 # Pausa entre requisições (segundos) — respeitar o servidor
 DELAY_MIN = 2
@@ -142,7 +142,7 @@ PRODUTOS_DIEESE = [
         "nome": "Manteiga",
         "quantidade_kg": 0.75,
         "unidade": "kg",
-        "termo_busca": "Manteiga",
+        "termo_busca": "Manteiga sem sal",
         "ncm_prefixos": ["0405"],  # Manteiga
         "peso_padrao_kg": 0.2,  # Embalagem típica 200g
     },
@@ -155,7 +155,6 @@ PRODUTOS_DIEESE = [
 # Palavras na DESCRIÇÃO do produto que indicam não ser item de varejo
 BLACKLIST_DESCRICAO = [
     "ADICIONAL",
-    "EXTRA ",  # espaço para não pegar "EXTRA VIRGEM"
     "PORÇÃO",
     "PORCAO",
     "KIDS",
