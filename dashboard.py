@@ -20,10 +20,15 @@ from database import (
     consultar_cidades_disponiveis,
     consultar_datas_disponiveis,
     consultar_detalhes_produtos,
+    listar_config_cestas,
+    carregar_config_cesta,
+    salvar_config_cesta,
+    excluir_config_cesta,
 )
 from config import PRODUTOS_DIEESE
 from collector import coletar_cidade
 from api_client import MenorPrecoAPI
+from ncm_constants import NCM_OPTIONS
 
 
 # ============================
@@ -238,34 +243,129 @@ def render_sidebar():
         st.markdown("---")
 
         # ============================
+        # Seleção de Tipo de Cesta
+        # ============================
+        st.markdown("### 🧺 Tipo de Cesta")
+        tipo_cesta_base = st.radio(
+            "Selecione a fonte dos produtos:",
+            options=["DIEESE (Padrão)", "Personalizada"],
+            horizontal=True
+        )
+
+        produtos_para_coleta = PRODUTOS_DIEESE
+        nome_cesta_atual = "DIEESE"
+
+        if tipo_cesta_base == "Personalizada":
+            cestas_salvas = listar_config_cestas()
+            
+            col_c1, col_c2 = st.columns([3, 1])
+            with col_c1:
+                nome_cesta_atual = st.selectbox(
+                    "Minhas Cestas:",
+                    options=["Nova Cesta..."] + cestas_salvas if cestas_salvas else ["Nova Cesta..."],
+                    index=1 if cestas_salvas else 0
+                )
+            
+            if nome_cesta_atual == "Nova Cesta...":
+                nome_cesta_atual = st.text_input("Nome da Nova Cesta", value="Minha Cesta 1")
+            
+            with col_c2:
+                if st.button("🗑️", help="Excluir esta cesta"):
+                    if nome_cesta_atual in cestas_salvas:
+                        excluir_config_cesta(nome_cesta_atual)
+                        st.rerun()
+
+            # Carregar itens da cesta atual
+            itens_custom = carregar_config_cesta(nome_cesta_atual) or []
+            
+            # Interface para Gerenciar Itens
+            with st.expander("🛠️ Editar Itens da Cesta", expanded=not itens_custom):
+                st.markdown("##### Adicionar Novo Item")
+                new_nome = st.text_input("Nome do Produto (ex: Chocolate)", key="new_nome")
+                new_termo = st.text_input("Termo de Busca (ex: Chocolate Barra)", key="new_termo")
+                
+                # Seleção de NCM via Dropdown
+                ncm_sel = st.multiselect(
+                    "NCMs Relacionados (Dropdown)",
+                    options=NCM_OPTIONS,
+                    help="Selecione um ou mais NCMs da lista para filtrar os resultados"
+                )
+                new_ncms = [n.split(" - ")[0] for n in ncm_sel]
+                
+                col_i1, col_i2 = st.columns(2)
+                with col_i1:
+                    new_qtd = st.number_input("Qtd Mensal (kg/un)", value=1.0, step=0.1)
+                with col_i2:
+                    new_peso = st.number_input("Peso Padrão (kg)", value=1.0, step=0.1)
+                
+                if st.button("➕ Adicionar Item"):
+                    if new_nome and new_termo:
+                        itens_custom.append({
+                            "nome": new_nome,
+                            "termo_busca": new_termo,
+                            "ncm_prefixos": new_ncms,
+                            "quantidade_kg": new_qtd,
+                            "peso_padrao_kg": new_peso
+                        })
+                        salvar_config_cesta(nome_cesta_atual, itens_custom)
+                        st.rerun()
+
+                st.markdown("---")
+                st.markdown("##### Itens Atuais")
+                if not itens_custom:
+                    st.info("Nenhum item adicionado ainda.")
+                else:
+                    for idx, item in enumerate(itens_custom):
+                        c1, c2 = st.columns([4, 1])
+                        c1.markdown(f"**{item['nome']}** ({item['termo_busca']}) - {item['quantidade_kg']}kg")
+                        if c2.button("❌", key=f"del_{idx}"):
+                            itens_custom.pop(idx)
+                            salvar_config_cesta(nome_cesta_atual, itens_custom)
+                            st.rerun()
+
+            produtos_para_coleta = itens_custom
+
+        st.markdown("---")
+
+        # ============================
         # Botão de pesquisa manual
         # ============================
         st.markdown("### 🔄 Pesquisa Manual")
-        if st.button("🚀 Executar Pesquisa Agora", use_container_width=True, type="primary"):
-            data_coleta = datetime.now().strftime("%Y-%m-%d %H:%M")
-            
-            # Containers para progresso
-            prog_bar = st.progress(0)
-            prog_status = st.empty()
-            
-            def update_progresso(percent, msg):
-                prog_bar.progress(percent)
-                prog_status.markdown(f"**Status:** {msg}")
-
-            try:
-                api = MenorPrecoAPI()
-                custo = coletar_cidade(api, cidade, data_coleta, progress_callback=update_progresso)
+        btn_label = "🚀 Pesquisar Cesta DIEESE" if tipo_cesta_base == "DIEESE (Padrão)" else f"🚀 Pesquisar '{nome_cesta_atual}'"
+        
+        if st.button(btn_label, use_container_width=True, type="primary"):
+            if not produtos_para_coleta:
+                st.error("❌ Adicione itens à sua cesta antes de pesquisar!")
+            else:
+                data_coleta = datetime.now().strftime("%Y-%m-%d %H:%M")
                 
-                if custo is not None:
-                    st.success(f"✅ Coleta concluída! Cesta: R$ {custo:.2f}")
-                    st.rerun()
-                else:
-                    st.error("❌ Falha na coleta. Verifique a conexão e tente novamente.")
-            except Exception as e:
-                st.error(f"❌ Erro durante a coleta: {e}")
-            finally:
-                prog_bar.empty()
-                prog_status.empty()
+                # Containers para progresso
+                prog_bar = st.progress(0)
+                prog_status = st.empty()
+                
+                def update_progresso(percent, msg):
+                    prog_bar.progress(percent)
+                    prog_status.markdown(f"**Status:** {msg}")
+
+                try:
+                    api = MenorPrecoAPI()
+                    custo = coletar_cidade(
+                        api, cidade, data_coleta, 
+                        progress_callback=update_progresso,
+                        lista_produtos=produtos_para_coleta,
+                        tipo_cesta=nome_cesta_atual
+                    )
+                    
+                    if custo is not None:
+                        st.success(f"✅ Coleta concluída! Total: R$ {custo:.2f}")
+                        st.rerun()
+                    else:
+                        st.error("❌ Falha na coleta. Verifique a conexão e tente novamente.")
+                except Exception as e:
+                    st.error(f"❌ Erro durante a coleta: {e}")
+                finally:
+                    prog_bar.empty()
+                    prog_status.empty()
 
         st.markdown("---")
 
@@ -273,12 +373,12 @@ def render_sidebar():
         # Seletor de histórico
         # ============================
         st.markdown("### 📜 Histórico")
-        datas = consultar_datas_disponiveis(cidade)
+        datas = consultar_datas_disponiveis(cidade, tipo_cesta=nome_cesta_atual)
         data_selecionada = None
         if datas:
             opcoes_hist = ["Mais recente"] + datas
             escolha = st.selectbox(
-                "Selecione uma coleta:",
+                f"Coletas de '{nome_cesta_atual}':",
                 options=opcoes_hist,
                 index=0,
                 help="Escolha uma coleta anterior para visualizar no dashboard",
@@ -286,9 +386,10 @@ def render_sidebar():
             if escolha != "Mais recente":
                 data_selecionada = escolha
         else:
-            st.info("Nenhuma coleta disponível ainda.")
+            st.info(f"Nenhuma coleta de '{nome_cesta_atual}' disponível.")
 
         st.markdown("---")
+
         st.markdown("### 📋 Sobre")
         st.markdown(
             "Dados coletados do portal **Menor Preço** "
@@ -303,12 +404,12 @@ def render_sidebar():
             "(NCM, blacklist, normalização, IQR, mediana)."
         )
 
-        return cidade, data_selecionada
+        return cidade, data_selecionada, nome_cesta_atual
 
 
-def render_metricas(cidade, data_selecionada=None):
+def render_metricas(cidade, data_selecionada=None, tipo_cesta='DIEESE'):
     """Renderiza os cards de métricas principais."""
-    cestas = consultar_cestas(cidade)
+    cestas = consultar_cestas(cidade, tipo_cesta=tipo_cesta)
 
     if not cestas:
         st.warning(
@@ -352,9 +453,10 @@ def render_metricas(cidade, data_selecionada=None):
         )
 
     with col2:
+        num_produtos_total = 13 if tipo_cesta == 'DIEESE' else len(carregar_config_cesta(tipo_cesta) or [])
         st.metric(
             label="📊 Produtos Encontrados",
-            value=f"{num_produtos}/13",
+            value=f"{num_produtos}/{num_produtos_total}",
         )
 
     with col3:
@@ -373,11 +475,11 @@ def render_metricas(cidade, data_selecionada=None):
         )
 
 
-def render_tabela_produtos(cidade, data_selecionada=None):
+def render_tabela_produtos(cidade, data_selecionada=None, tipo_cesta='DIEESE'):
     """Renderiza tabela detalhada por produto."""
     st.markdown("### 📋 Detalhamento por Produto")
 
-    coletas = consultar_coletas(cidade)
+    coletas = consultar_coletas(cidade, tipo_cesta=tipo_cesta)
 
     if not coletas:
         st.info("Nenhuma coleta disponível.")
@@ -417,11 +519,11 @@ def render_tabela_produtos(cidade, data_selecionada=None):
     )
 
 
-def render_grafico_historico(cidade):
+def render_grafico_historico(cidade, tipo_cesta='DIEESE'):
     """Renderiza gráfico de evolução histórica do custo da cesta."""
     st.markdown("### 📈 Evolução Histórica do Custo da Cesta")
 
-    cestas = consultar_cestas(cidade)
+    cestas = consultar_cestas(cidade, tipo_cesta=tipo_cesta)
 
     if len(cestas) < 2:
         st.info(
@@ -459,12 +561,12 @@ def render_grafico_historico(cidade):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_comparativo_cidades():
+def render_comparativo_cidades(tipo_cesta='DIEESE'):
     """Renderiza gráfico comparativo entre cidades."""
     st.markdown("### 🏙️ Comparativo entre Cidades")
 
     # Buscar última cesta de cada cidade
-    cidades = consultar_cidades_disponiveis()
+    cidades = consultar_cidades_disponiveis(tipo_cesta=tipo_cesta)
 
     if len(cidades) < 2:
         st.info(
@@ -475,7 +577,7 @@ def render_comparativo_cidades():
 
     dados = []
     for cidade in cidades:
-        cestas = consultar_cestas(cidade)
+        cestas = consultar_cestas(cidade, tipo_cesta=tipo_cesta)
         if cestas:
             dados.append({
                 "Cidade": cidade,
@@ -512,11 +614,11 @@ def render_comparativo_cidades():
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_grafico_composicao(cidade, data_selecionada=None):
+def render_grafico_composicao(cidade, data_selecionada=None, tipo_cesta='DIEESE'):
     """Gráfico de pizza mostrando composição da cesta por produto."""
     st.markdown("### 🥧 Composição da Cesta por Produto")
 
-    coletas = consultar_coletas(cidade)
+    coletas = consultar_coletas(cidade, tipo_cesta=tipo_cesta)
     if not coletas:
         return
 
@@ -554,13 +656,13 @@ def render_grafico_composicao(cidade, data_selecionada=None):
     st.plotly_chart(fig, use_container_width=True)
 
 
-def render_relatorio_complementar(cidade, data_selecionada=None):
+def render_relatorio_complementar(cidade, data_selecionada=None, tipo_cesta='DIEESE'):
     """Renderiza relatório com top 3 mais baratos/caros, marcas e lojas."""
     st.markdown("---")
     st.markdown("## 🔎 Relatório Complementar por Produto")
 
     # Obter produtos disponíveis na coleta selecionada
-    coletas = consultar_coletas(cidade)
+    coletas = consultar_coletas(cidade, tipo_cesta=tipo_cesta)
     if not coletas:
         st.info("Sem dados para o relatório complementar.")
         return
@@ -581,7 +683,7 @@ def render_relatorio_complementar(cidade, data_selecionada=None):
     )
 
     # Buscar detalhes do produto
-    detalhes = consultar_detalhes_produtos(cidade, produto_sel, data_alvo)
+    detalhes = consultar_detalhes_produtos(cidade, produto_sel, data_alvo, tipo_cesta=tipo_cesta)
 
     if not detalhes:
         st.warning(
@@ -654,10 +756,10 @@ def main():
     render_header()
 
     # Sidebar (retorna cidade selecionada e data do histórico)
-    cidade, data_selecionada = render_sidebar()
+    cidade, data_selecionada, tipo_cesta = render_sidebar()
 
     # Métricas principais
-    render_metricas(cidade, data_selecionada)
+    render_metricas(cidade, data_selecionada, tipo_cesta)
 
     st.markdown("---")
 
@@ -665,10 +767,10 @@ def main():
     col_esq, col_dir = st.columns([3, 2])
 
     with col_esq:
-        render_tabela_produtos(cidade, data_selecionada)
+        render_tabela_produtos(cidade, data_selecionada, tipo_cesta)
 
     with col_dir:
-        render_grafico_composicao(cidade, data_selecionada)
+        render_grafico_composicao(cidade, data_selecionada, tipo_cesta)
 
     st.markdown("---")
 
@@ -676,13 +778,13 @@ def main():
     col1, col2 = st.columns(2)
 
     with col1:
-        render_grafico_historico(cidade)
+        render_grafico_historico(cidade, tipo_cesta)
 
     with col2:
-        render_comparativo_cidades()
+        render_comparativo_cidades(tipo_cesta)
 
     # Relatório Complementar
-    render_relatorio_complementar(cidade, data_selecionada)
+    render_relatorio_complementar(cidade, data_selecionada, tipo_cesta)
 
     # Rodapé
     st.markdown("---")
