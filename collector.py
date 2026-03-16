@@ -19,7 +19,7 @@ from filters import pipeline_filtragem
 from database import init_db, salvar_coleta, salvar_cesta, salvar_detalhes_produtos
 
 
-def coletar_cidade(api, cidade, data_coleta):
+def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
     """
     Executa a coleta completa para uma cidade.
 
@@ -27,6 +27,7 @@ def coletar_cidade(api, cidade, data_coleta):
         api: Instância de MenorPrecoAPI
         cidade: Nome da cidade
         data_coleta: Data no formato YYYY-MM-DD
+        progress_callback: Função callback(percent, msg) para progresso (Streamlit)
 
     Returns:
         Custo total da cesta ou None em caso de erro
@@ -45,7 +46,8 @@ def coletar_cidade(api, cidade, data_coleta):
     custo_total = 0
     produtos_encontrados = 0
 
-    for produto in PRODUTOS_DIEESE:
+    num_total = len(PRODUTOS_DIEESE)
+    for i, produto in enumerate(PRODUTOS_DIEESE):
         nome = produto["nome"]
         termos = produto["termo_busca"]
         if isinstance(termos, str):
@@ -54,6 +56,11 @@ def coletar_cidade(api, cidade, data_coleta):
         quantidade = produto["quantidade_kg"]
         ncm_prefixos = produto["ncm_prefixos"]
         peso_padrao = produto["peso_padrao_kg"]
+
+        percentual = (i / num_total)
+        mensagem = f"Pesquisando {nome}..."
+        if progress_callback:
+            progress_callback(percentual, mensagem)
 
         print(f"\n  🔍 Buscando: {nome} (termos: {termos})")
 
@@ -126,6 +133,10 @@ def coletar_cidade(api, cidade, data_coleta):
     print(f"   Custo Total: R$ {custo_total:.2f}")
     print(f"   Produtos encontrados: {produtos_encontrados}/{len(PRODUTOS_DIEESE)}")
     print(f"{'='*60}")
+
+    # Finalizar progresso
+    if progress_callback:
+        progress_callback(1.0, "Coleta concluída!")
 
     return custo_total
 
