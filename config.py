@@ -87,7 +87,7 @@ PRODUTOS_DIEESE = [
         "quantidade_kg": 6.0,
         "unidade": "kg",
         "termo_busca": "Batata",
-        "ncm_prefixos": ["0701"],  # Batatas
+        "ncm_prefixos": ["0701", "0710", "2005"],  # Batatas e preparações
         "peso_padrao_kg": 1.0,
     },
     {
@@ -183,6 +183,16 @@ BLACKLIST_DESCRICAO = [
     "MICANGA",
     "ENTREMEIO",
     "BIJOUTERIA",
+    "CHIPS",
+    "PALHA",
+    "PRÉ-FRITA",
+    "PRE-FRITA",
+    "CONGELAD",
+    "SALGADINHO",
+    "FRITA",
+    "PRINGLES",
+    "SNACK",
+    "PRONTO",
 ]
 
 # Palavras no NOME do estabelecimento que indicam preços atípicos
