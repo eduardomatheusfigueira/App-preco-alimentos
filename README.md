@@ -1,19 +1,24 @@
-# 🛒 Cesta Básica DIEESE - Menor Preço PR
+# 🛒 App Preço Alimentos - Itaipu Parquetec
 
-Aplicação Python que coleta automaticamente os preços dos 13 itens da cesta básica (metodologia DIEESE, Região 3) a partir da API do portal **Menor Preço** (Nota Paraná), armazena em SQLite e exibe em um dashboard interativo via Streamlit.
+Aplicação robusta em Python para monitoramento de preços de alimentos em tempo real, utilizando a API do portal **Menor Preço (Nota Paraná)**. O sistema segue a metodologia do **DIEESE** para o cálculo da Cesta Básica, mas permite total personalização pelo usuário.
 
-## 📌 Funcionalidades
+---
 
-- **Coleta automatizada** dos 13 produtos da cesta básica
-- **Filtragem inteligente** de outliers em 5 camadas (NCM, blacklist, normalização, IQR, mediana)
-- **Seleção de cidade** — qualquer município do Paraná
-- **Dashboard interativo** com gráficos de tendência, comparativo entre cidades e detalhamento por produto
-- **Automação** via GitHub Actions (coleta diária)
+## 🏗️ O que há de novo?
 
-## 🚀 Instalação
+- **📦 Cestas Personalizadas**: Monte sua própria lista de compras (ex: "Churrasco", "Cesta Vegana"), defina termos de busca, NCMs e quantidades. O App gerencia históricos independentes para cada cesta.
+- **🥩 Coleta Inteligente de Carne**: Sistema multi-termo que contorna o limite de 50 itens da API, buscando cortes específicos (Coxão Mole, Alcatra, etc.) e removendo duplicatas automaticamente.
+- **📊 Barra de Progresso Real-time**: Feedback visual no dashboard durante a coleta manual, mostrando percentual e status de cada produto.
+- **📐 Design Itaipu Parquetec**: Interface moderna com Glassmorphism, tipografia Ubuntu e paleta de cores institucional.
+- **🔍 Pipeline de Refinamento**: 5 camadas de filtragem (NCM, blacklist de miúdos, normalização de peso, limpeza de outliers via IQR e cálculo de mediana).
 
+---
+
+## 🚀 Instalação e Configuração
+
+### 1. Preparar Ambiente
 ```bash
-# Criar ambiente virtual
+# Criar e ativar ambiente virtual
 python -m venv venv
 venv\Scripts\activate        # Windows
 # source venv/bin/activate   # Linux/Mac
@@ -22,42 +27,39 @@ venv\Scripts\activate        # Windows
 pip install -r requirements.txt
 ```
 
-## 📊 Uso
-
-### Coletar preços
-
+### 2. Execução
 ```bash
-# Coleta para Curitiba (padrão)
-python collector.py
-
-# Coleta para uma cidade específica
-python collector.py --cidade "Londrina"
-
-# Coleta para todas as cidades configuradas
-python collector.py --cidade todas
-```
-
-### Abrir o dashboard
-
-```bash
+# Iniciar o Dashboard Streamlit
 streamlit run dashboard.py
 ```
 
-## 🏗️ Arquitetura
+---
 
-| Arquivo | Descrição |
+## 🛠️ Arquitetura do Sistema
+
+| Arquivo | Função |
 |---------|-----------|
-| `config.py` | Configurações: 13 produtos DIEESE, NCMs, blacklists, cidades |
-| `api_client.py` | Cliente HTTP com rate limiting e retry |
-| `filters.py` | Pipeline de filtragem em 5 camadas |
-| `collector.py` | Script coletor com CLI `--cidade` |
-| `database.py` | Camada de persistência SQLite |
-| `dashboard.py` | Dashboard Streamlit interativo |
+| `dashboard.py` | Interface principal Steamlit com gestão de cestas e relatórios. |
+| `collector.py` | Motor de coleta dinâmico com suporte a progress_callback. |
+| `database.py` | Camada de persistência SQLite com suporte a múltiplas configurações. |
+| `api_client.py` | Integração com Menor Preço PR (SSL seguro, retries, rate-limit). |
+| `filters.py` | Lógica de normalização de gramatura (ex: UN -> KG) e filtragem estatística. |
+| `config.py` | Configurações DIEESE e constantes globais do App. |
+| `ncm_constants.py` | Catálogo de NCMs p/ facilitar a criação de itens customizados. |
 
-## 📋 Metodologia
+---
 
-Segue o Decreto Lei nº 399/1938 regulamentado pelo DIEESE para Região 3 (PR, SC, RS).
+## 📋 Como Usar: Cesta Personalizada
 
-## ⚠️ Aviso Legal
+1. No Dashboard, vá na barra lateral e selecione o modo **"Personalizada"**.
+2. Clique em **"🛠️ Editar Itens da Cesta"**.
+3. Adicionar o nome do produto e o termo de busca (ex: "Chocolate Meio Amargo").
+4. Use o **Dropdown de NCM** para garantir que você só pesquise itens da categoria correta.
+5. Defina a quantidade e salve.
+6. Clique em **🚀 Pesquisar [Sua Cesta]**.
 
-Projeto **acadêmico/pessoal**. O script implementa pausas entre requisições para não sobrecarregar os servidores da SEFA/PR. Os preços são informativos e extraídos de NF-e.
+---
+
+## ⚠️ Aviso Legal e Metodologia
+
+Este é um projeto desenvolvido com propósitos acadêmicos/técnicos. A coleta respeita a infraestrutura do portal Nota Paraná através do uso de delays controlados. Os dados refletem as notas fiscais emitidas no estado do Paraná (Região 3 DIEESE).
