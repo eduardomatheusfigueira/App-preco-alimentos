@@ -47,18 +47,46 @@ def coletar_cidade(api, cidade, data_coleta):
 
     for produto in PRODUTOS_DIEESE:
         nome = produto["nome"]
-        termo = produto["termo_busca"]
+        termos = produto["termo_busca"]
+        if isinstance(termos, str):
+            termos = [termos]
+            
         quantidade = produto["quantidade_kg"]
         ncm_prefixos = produto["ncm_prefixos"]
         peso_padrao = produto["peso_padrao_kg"]
 
-        print(f"\n  🔍 Buscando: {nome} (termo: '{termo}')")
+        print(f"\n  🔍 Buscando: {nome} (termos: {termos})")
 
-        # Buscar na API
-        resultados = api.buscar_produtos(termo, geohash)
+        # Buscar na API (acumulando resultados de múltiplos termos)
+        todos_resultados = []
+        for termo in termos:
+            print(f"    - Pesquisando termo: '{termo}'...")
+            resultados_termo = api.buscar_produtos(termo, geohash)
+            todos_resultados.extend(resultados_termo)
+            
+        # Deduplicação básica baseada em GTIN ou Descrição + Preço + Estabelecimento
+        vistos = set()
+        resultados_dedup = []
+        for r in todos_resultados:
+            # Criar uma chave única para o produto
+            gtin = r.get("gtin")
+            if gtin and gtin != "N/A":
+                chave = f"gtin_{gtin}"
+            else:
+                desc = r.get("desc", "").upper()
+                valor = r.get("valor", "")
+                estab_id = r.get("estabelecimento", {}).get("id", "")
+                chave = f"desc_{desc}_{valor}_{estab_id}"
+            
+            if chave not in vistos:
+                vistos.add(chave)
+                resultados_dedup.append(r)
+        
+        if len(todos_resultados) > len(resultados_dedup):
+            print(f"    ✨ Deduplicação: removidos {len(todos_resultados) - len(resultados_dedup)} itens duplicados")
 
         # Aplicar pipeline de filtragem
-        stats = pipeline_filtragem(resultados, ncm_prefixos, peso_padrao)
+        stats = pipeline_filtragem(resultados_dedup, ncm_prefixos, peso_padrao)
 
         if stats["num_amostras"] > 0:
             # Salvar no banco
@@ -66,7 +94,7 @@ def coletar_cidade(api, cidade, data_coleta):
                 data_coleta=data_coleta,
                 cidade=cidade,
                 produto_dieese=nome,
-                termo_busca=termo,
+                termo_busca="; ".join(termos),
                 stats=stats,
                 quantidade_dieese=quantidade,
             )
@@ -85,6 +113,7 @@ def coletar_cidade(api, cidade, data_coleta):
             print(
                 f"  💰 {nome}: R${stats['mediana']:.2f}/kg "
                 f"× {quantidade}kg = R${custo_item:.2f}"
+                f" ({stats['num_amostras']} amostras)"
             )
         else:
             print(f"  ⚠️  {nome}: Nenhum resultado válido encontrado")
