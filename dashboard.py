@@ -243,14 +243,29 @@ def render_sidebar():
         st.markdown("### 🔄 Pesquisa Manual")
         if st.button("🚀 Executar Pesquisa Agora", use_container_width=True, type="primary"):
             data_coleta = datetime.now().strftime("%Y-%m-%d %H:%M")
-            with st.spinner(f"Coletando preços para {cidade}... Isso pode levar alguns minutos."):
+            
+            # Containers para progresso
+            prog_bar = st.progress(0)
+            prog_status = st.empty()
+            
+            def update_progresso(percent, msg):
+                prog_bar.progress(percent)
+                prog_status.markdown(f"**Status:** {msg}")
+
+            try:
                 api = MenorPrecoAPI()
-                custo = coletar_cidade(api, cidade, data_coleta)
-            if custo is not None:
-                st.success(f"✅ Coleta concluída! Cesta: R$ {custo:.2f}")
-                st.rerun()
-            else:
-                st.error("❌ Falha na coleta. Verifique a conexão e tente novamente.")
+                custo = coletar_cidade(api, cidade, data_coleta, progress_callback=update_progresso)
+                
+                if custo is not None:
+                    st.success(f"✅ Coleta concluída! Cesta: R$ {custo:.2f}")
+                    st.rerun()
+                else:
+                    st.error("❌ Falha na coleta. Verifique a conexão e tente novamente.")
+            except Exception as e:
+                st.error(f"❌ Erro durante a coleta: {e}")
+            finally:
+                prog_bar.empty()
+                prog_status.empty()
 
         st.markdown("---")
 
