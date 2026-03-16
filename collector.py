@@ -19,7 +19,8 @@ from filters import pipeline_filtragem
 from database import init_db, salvar_coleta, salvar_cesta, salvar_detalhes_produtos
 
 
-def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
+def coletar_cidade(api, cidade, data_coleta, progress_callback=None, 
+                   lista_produtos=None, tipo_cesta='DIEESE'):
     """
     Executa a coleta completa para uma cidade.
 
@@ -28,6 +29,8 @@ def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
         cidade: Nome da cidade
         data_coleta: Data no formato YYYY-MM-DD
         progress_callback: Função callback(percent, msg) para progresso (Streamlit)
+        lista_produtos: Lista de dicionários de produtos (None usa DIEESE)
+        tipo_cesta: Nome/ID da cesta para salvar no banco
 
     Returns:
         Custo total da cesta ou None em caso de erro
@@ -43,11 +46,14 @@ def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
         print(f"❌ Não foi possível localizar a cidade '{cidade}'. Pulando...")
         return None
 
+    # Determinar lista de produtos
+    produtos_alvo = lista_produtos if lista_produtos else PRODUTOS_DIEESE
+
     custo_total = 0
     produtos_encontrados = 0
 
-    num_total = len(PRODUTOS_DIEESE)
-    for i, produto in enumerate(PRODUTOS_DIEESE):
+    num_total = len(produtos_alvo)
+    for i, produto in enumerate(produtos_alvo):
         nome = produto["nome"]
         termos = produto["termo_busca"]
         if isinstance(termos, str):
@@ -104,6 +110,7 @@ def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
                 termo_busca="; ".join(termos),
                 stats=stats,
                 quantidade_dieese=quantidade,
+                tipo_cesta=tipo_cesta
             )
 
             # Salvar detalhes de todos os produtos filtrados da amostra
@@ -111,7 +118,8 @@ def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
                 data_coleta=data_coleta,
                 cidade=cidade,
                 produto_dieese=nome,
-                produtos_filtrados=stats.get("produtos_filtrados", [])
+                produtos_filtrados=stats.get("produtos_filtrados", []),
+                tipo_cesta=tipo_cesta
             )
 
             custo_total += custo_item
@@ -126,12 +134,12 @@ def coletar_cidade(api, cidade, data_coleta, progress_callback=None):
             print(f"  ⚠️  {nome}: Nenhum resultado válido encontrado")
 
     # Salvar resumo da cesta
-    salvar_cesta(data_coleta, cidade, custo_total, produtos_encontrados)
+    salvar_cesta(data_coleta, cidade, custo_total, produtos_encontrados, tipo_cesta=tipo_cesta)
 
     print(f"\n{'='*60}")
-    print(f"🛒 CESTA BÁSICA - {cidade}")
+    print(f"🛒 CESTA: {tipo_cesta} - {cidade}")
     print(f"   Custo Total: R$ {custo_total:.2f}")
-    print(f"   Produtos encontrados: {produtos_encontrados}/{len(PRODUTOS_DIEESE)}")
+    print(f"   Produtos encontrados: {produtos_encontrados}/{len(produtos_alvo)}")
     print(f"{'='*60}")
 
     # Finalizar progresso
