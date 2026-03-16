@@ -46,7 +46,7 @@ PRODUTOS_DIEESE = [
         "nome": "Carne",
         "quantidade_kg": 6.6,
         "unidade": "kg",
-        "termo_busca": "Carne bovina",
+        "termo_busca": ["coxao mole", "coxao duro", "patinho", "alcatra"],
         "ncm_prefixos": ["0201", "0202"],  # Carne bovina fresca/congelada
         "peso_padrao_kg": 1.0,
     },
@@ -54,7 +54,7 @@ PRODUTOS_DIEESE = [
         "nome": "Leite",
         "quantidade_kg": 7.5,
         "unidade": "L",
-        "termo_busca": "Leite integral",
+        "termo_busca": ["Leite integral", "lactose 1l"],
         "ncm_prefixos": ["0401"],  # Leite não concentrado
         "peso_padrao_kg": 1.0,  # 1L ≈ 1kg
     },
@@ -118,7 +118,7 @@ PRODUTOS_DIEESE = [
         "nome": "Banana",
         "quantidade_kg": 10.8,  # 90 unidades ≈ 10.8kg (120g/un)
         "unidade": "kg",
-        "termo_busca": "Banana Caturra",
+        "termo_busca": ["Caturra", "banana prata", "banana nanica"],
         "ncm_prefixos": ["0803"],  # Bananas
         "peso_padrao_kg": 1.0,
     },
@@ -175,6 +175,11 @@ BLACKLIST_DESCRICAO = [
     "SEMENTE",
     "SABONETE",
     "SHAMPOO",
+    "FIGADO",
+    "FÍGADO",
+    "CORAÇÃO",
+    "LÍNGUA",
+    "LINGUA",
     "COSMÉTICO",
     "COSMETICO",
     "CHUMBO",
