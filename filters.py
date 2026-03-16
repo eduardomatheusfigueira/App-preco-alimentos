@@ -63,13 +63,29 @@ def filtrar_por_blacklist(produtos):
 def extrair_peso_kg(descricao, peso_padrao_kg=1.0):
     """
     Extrai o peso em kg da descrição do produto.
-    Ex: "ARROZ BURITI 1KG" → 1.0
+    Lida com padrões comuns de gramatura rural e industrial.
+    Ex: "ARROZ BURITI 5KG" → 5.0
         "CAFÉ MELITTA 500G" → 0.5
         "LEITE INTEGRAL 1L" → 1.0
+        "MANTEIGA 200 GR" → 0.2
+        "2 X 200G" → 0.4
+    Se "UN" estiver presente isolado sem medidas e o item costuma ser unitário 
+    mas ter peso padrão (ex: manteiga de 200g), assume o peso_padrao_kg.
     """
     descricao = descricao.upper()
 
-    # Padrão: número + unidade (KG, G, GR, ML, L)
+    # Tratamento para multiplicadores (ex: "LEITE 12X1L", "MOLHO 3 X 340G")
+    multiplicador = 1.0
+    match_mult = re.search(r"(\d+)\s*[X\*]\s*(\d)", descricao)
+    if match_mult:
+        try:
+            multiplicador = float(match_mult.group(1))
+            # Remove a parte do multiplicador da string para não confundir o regex principal
+            descricao = re.sub(r"(\d+)\s*[X\*]\s*", "", descricao, count=1)
+        except ValueError:
+            pass
+
+    # Padrões: número + unidade (KG, G, GR, ML, L)
     padroes = [
         (r"(\d+(?:[.,]\d+)?)\s*KG", 1.0),       # kg
         (r"(\d+(?:[.,]\d+)?)\s*(?:GR?)\b", 0.001),  # gramas → kg
@@ -81,10 +97,15 @@ def extrair_peso_kg(descricao, peso_padrao_kg=1.0):
         match = re.search(padrao, descricao)
         if match:
             valor = float(match.group(1).replace(",", "."))
-            peso = valor * fator
+            peso_total = valor * fator * multiplicador
             # Validação: peso razoável (10g a 50kg)
-            if 0.01 <= peso <= 50:
-                return peso
+            if 0.01 <= peso_total <= 50:
+                return peso_total
+
+    # Se a descrição indicar explicitamente que é unidade/peça mas sem peso
+    if re.search(r"\b(UN|UNID|UND|PCT|PACOTE|SACO)\b", descricao):
+        # Muitas vezes o "peso padrão" do produto no config já expressa essa unidade
+        return peso_padrao_kg
 
     return peso_padrao_kg
 
