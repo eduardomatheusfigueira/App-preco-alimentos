@@ -12,7 +12,7 @@ API_CATEGORIAS = f"{API_BASE_URL}/categorias"
 API_GEOCODING = "https://menorpreco.notaparana.pr.gov.br/mapa/search"
 
 # Raio de busca padrão (km)
-RAIO_BUSCA_KM = 30
+RAIO_BUSCA_KM = 20
 
 # Pausa entre requisições (segundos) — respeitar o servidor
 DELAY_MIN = 2
